@@ -840,7 +840,13 @@ async function fetchButtonStates() {
     });
     const rows = await res.json();
     if (Array.isArray(rows)) {
-      rows.forEach(r => { buttonStates[r.id] = { status: r.status, locked_by: r.locked_by }; });
+let changed = false;
+      rows.forEach(r => {
+        const prev = buttonStates[r.id];
+        if (!prev || prev.status !== r.status || prev.locked_by !== r.locked_by) changed = true;
+        buttonStates[r.id] = { status: r.status, locked_by: r.locked_by };
+      });
+      if (changed) renderButtons();
     }
     renderButtons();
   } catch(e) {}
