@@ -917,9 +917,8 @@ async function handleClick(id) {
   const nextStatus = pattern[nextIdx];
   const nextLockedBy = nextStatus === 'off' ? '' : myName;
 
-  buttonStates[id] = { status: nextStatus, locked_by: nextLockedBy };
-  updateButtonUI(id);
   await upsertButton(id, nextStatus, nextLockedBy);
+  await fetchButtonStates();
 }
 
 // ===== SETTINGS =====
