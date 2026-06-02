@@ -816,12 +816,13 @@ function saveName() {
   showButtonsArea();
 }
 
-function showButtonsArea() {
+async function showButtonsArea() {
   document.getElementById('name-prompt').style.display = 'none';
   document.getElementById('buttons-area').style.display = 'flex';
   document.getElementById('header-user-badge').style.display = 'flex';
   document.getElementById('header-user-name').textContent = myName;
   document.getElementById('open-settings-btn').style.display = 'flex';
+  await loadSettingsFromSupabase();
   initPolling();
   renderButtons();
 }
@@ -840,14 +841,9 @@ async function fetchButtonStates() {
     });
     const rows = await res.json();
     if (Array.isArray(rows)) {
-let changed = false;
-      rows.forEach(r => {
-        const prev = buttonStates[r.id];
-        if (!prev || prev.status !== r.status || prev.locked_by !== r.locked_by) changed = true;
-        buttonStates[r.id] = { status: r.status, locked_by: r.locked_by };
-      });
-      if (changed) renderButtons();
+      rows.forEach(r => { buttonStates[r.id] = { status: r.status, locked_by: r.locked_by }; });
     }
+    renderButtons();
   } catch(e) {}
 }
 
@@ -984,7 +980,7 @@ function renderSettingsBtnList() {
 }
 
 function addButtonItem() {
-  const id = 'btn_' + Date.now();
+  const id = 'btn_' + (localSettings.buttons.length + 1);
   localSettings.buttons.push({ id, label: '新しいボタン', enabled: true });
   renderSettingsBtnList();
 }
@@ -1011,11 +1007,78 @@ function updateName() {
   showToast('名前を更新しました');
 }
 
-function saveSettings() {
+async function saveSettings() {
   localStorage.setItem('rtb_settings', JSON.stringify(localSettings));
+  // Supabaseにボタン設定を保存（全員で共有）
+  await saveSettingsToSupabase();
+  // ボタンレコードが存在しない場合は作成
+  await ensureButtonRecords();
   closeSettings();
+  await fetchButtonStates();
   renderButtons();
   showToast('設定を保存しました');
+}
+
+async function saveSettingsToSupabase() {
+  const sharedSettings = {
+    size: localSettings.size,
+    pattern: localSettings.pattern,
+    buttons: localSettings.buttons
+  };
+  await fetch(`${SUPABASE_URL}/rest/v1/settings`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates'
+    },
+    body: JSON.stringify({ key: 'shared_config', value: sharedSettings })
+  });
+}
+
+async function loadSettingsFromSupabase() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/settings?key=eq.shared_config&select=value`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const rows = await res.json();
+    if (Array.isArray(rows) && rows.length > 0 && rows[0].value) {
+      const remote = rows[0].value;
+      // リモートの設定をローカルにマージ（ボタン一覧はリモート優先）
+      localSettings.size = remote.size || localSettings.size;
+      localSettings.pattern = remote.pattern || localSettings.pattern;
+      if (remote.buttons && remote.buttons.length > 0) {
+        localSettings.buttons = remote.buttons;
+      }
+      localStorage.setItem('rtb_settings', JSON.stringify(localSettings));
+    }
+  } catch(e) {}
+}
+
+async function ensureButtonRecords() {
+  // 既存ボタン一覧を取得
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/buttons?select=id`, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+  });
+  const existing = await res.json();
+  const existingIds = Array.isArray(existing) ? existing.map(r => r.id) : [];
+  
+  // 存在しないボタンを作成
+  for (const b of localSettings.buttons) {
+    if (!existingIds.includes(b.id)) {
+      await fetch(`${SUPABASE_URL}/rest/v1/buttons`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify({ id: b.id, label: b.label, status: 'off', locked_by: '', updated_at: new Date().toISOString() })
+      });
+    }
+  }
 }
 
 // ===== TOAST =====
