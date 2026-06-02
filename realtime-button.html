@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>作業中ランプ</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3350;
+    --text: #e8eaf6;
+    --text-muted: #7b82b4;
+    --accent: #5c6bc0;
+    --accent-hover: #7986cb;
+
+    --color-off: #2e3350;
+    --color-off-text: #7b82b4;
+    --color-red: #ef5350;
+    --color-red-glow: rgba(239,83,80,0.35);
+    --color-blue: #42a5f5;
+    --color-blue-glow: rgba(66,165,245,0.35);
+    --color-white: #e8eaf6;
+    --color-white-glow: rgba(232,234,246,0.25);
+    --color-green: #66bb6a;
+    --color-green-glow: rgba(102,187,106,0.35);
+    --color-yellow: #ffca28;
+    --color-yellow-glow: rgba(255,202,40,0.35);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .header-title {
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    color: var(--text);
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .user-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .user-badge .name {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .btn-settings {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-settings:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  /* ===== MAIN ===== */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+  }
+
+  /* ===== NAME PROMPT ===== */
+  #name-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    max-width: 400px;
+    width: 100%;
+  }
+
+  .prompt-title {
+    font-size: 20px;
+    font-weight: 500;
+    text-align: center;
+  }
+
+  .prompt-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .input-group {
+    width: 100%;
+    display: flex;
+    gap: 10px;
+  }
+
+  .input-group input {
+    flex: 1;
+    padding: 12px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .input-group input:focus {
+    border-color: var(--accent);
+  }
+
+  .btn-primary {
+    padding: 12px 24px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+  }
+
+  /* ===== BUTTONS AREA ===== */
+  #buttons-area {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 48px;
+    width: 100%;
+    max-width: 900px;
+  }
+
+  .buttons-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    justify-content: center;
+    width: 100%;
+  }
+
+  /* ===== LAMP BUTTON ===== */
+  .lamp-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .lamp-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 400;
+    letter-spacing: 0.03em;
+    text-align: center;
+    max-width: 160px;
+  }
+
+  .lamp-btn {
+    position: relative;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 4px;
+    font-family: inherit;
+  }
+
+  /* サイズ */
+  .lamp-btn.size-large  { width: 140px; height: 140px; }
+  .lamp-btn.size-medium { width: 100px; height: 100px; }
+  .lamp-btn.size-small  { width: 68px;  height: 68px;  }
+
+  .lamp-btn .btn-status-text {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  .lamp-btn.size-small .btn-status-text { font-size: 9px; }
+  .lamp-btn.size-large .btn-status-text { font-size: 13px; }
+
+  .lamp-btn .btn-user-text {
+    font-size: 10px;
+    letter-spacing: 0.02em;
+    pointer-events: none;
+    max-width: 80%;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .lamp-btn.size-small .btn-user-text { font-size: 8px; }
+  .lamp-btn.size-large .btn-user-text { font-size: 12px; }
+
+  /* OFF状態 */
+  .lamp-btn[data-status="off"] {
+    background: var(--surface2);
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.4), 0 0 0 2px var(--border);
+    color: var(--color-off-text);
+  }
+
+  .lamp-btn[data-status="off"]:hover {
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.4), 0 0 0 2px var(--accent);
+    color: var(--text);
+  }
+
+  /* RED状態 */
+  .lamp-btn[data-status="red"] {
+    background: radial-gradient(circle at 35% 35%, #ff7675, var(--color-red));
+    box-shadow: 0 0 30px var(--color-red-glow), 0 0 60px var(--color-red-glow), inset 0 2px 8px rgba(255,255,255,0.15);
+    color: white;
+    animation: lamp-pulse-red 1.5s ease-in-out infinite;
+  }
+
+  @keyframes lamp-pulse-red {
+    0%,100% { box-shadow: 0 0 25px var(--color-red-glow), 0 0 50px var(--color-red-glow), inset 0 2px 8px rgba(255,255,255,0.15); }
+    50%      { box-shadow: 0 0 40px var(--color-red-glow), 0 0 80px var(--color-red-glow), inset 0 2px 8px rgba(255,255,255,0.15); }
+  }
+
+  /* BLUE状態 */
+  .lamp-btn[data-status="blue"] {
+    background: radial-gradient(circle at 35% 35%, #74b9ff, var(--color-blue));
+    box-shadow: 0 0 30px var(--color-blue-glow), 0 0 60px var(--color-blue-glow), inset 0 2px 8px rgba(255,255,255,0.15);
+    color: white;
+    animation: lamp-pulse-blue 1.5s ease-in-out infinite;
+  }
+
+  @keyframes lamp-pulse-blue {
+    0%,100% { box-shadow: 0 0 25px var(--color-blue-glow), 0 0 50px var(--color-blue-glow), inset 0 2px 8px rgba(255,255,255,0.15); }
+    50%      { box-shadow: 0 0 40px var(--color-blue-glow), 0 0 80px var(--color-blue-glow), inset 0 2px 8px rgba(255,255,255,0.15); }
+  }
+
+  /* WHITE状態 */
+  .lamp-btn[data-status="white"] {
+    background: radial-gradient(circle at 35% 35%, #ffffff, #c8cfe8);
+    box-shadow: 0 0 30px var(--color-white-glow), 0 0 60px var(--color-white-glow), inset 0 2px 8px rgba(255,255,255,0.3);
+    color: #333;
+  }
+
+  /* GREEN状態 */
+  .lamp-btn[data-status="green"] {
+    background: radial-gradient(circle at 35% 35%, #a8d8a8, var(--color-green));
+    box-shadow: 0 0 30px var(--color-green-glow), 0 0 60px var(--color-green-glow), inset 0 2px 8px rgba(255,255,255,0.15);
+    color: white;
+    animation: lamp-pulse-green 1.5s ease-in-out infinite;
+  }
+
+  @keyframes lamp-pulse-green {
+    0%,100% { box-shadow: 0 0 25px var(--color-green-glow), 0 0 50px var(--color-green-glow), inset 0 2px 8px rgba(255,255,255,0.15); }
+    50%      { box-shadow: 0 0 40px var(--color-green-glow), 0 0 80px var(--color-green-glow), inset 0 2px 8px rgba(255,255,255,0.15); }
+  }
+
+  /* YELLOW状態 */
+  .lamp-btn[data-status="yellow"] {
+    background: radial-gradient(circle at 35% 35%, #ffe082, var(--color-yellow));
+    box-shadow: 0 0 30px var(--color-yellow-glow), 0 0 60px var(--color-yellow-glow), inset 0 2px 8px rgba(255,255,255,0.15);
+    color: #5d4037;
+    animation: lamp-pulse-yellow 1.5s ease-in-out infinite;
+  }
+
+  @keyframes lamp-pulse-yellow {
+    0%,100% { box-shadow: 0 0 25px var(--color-yellow-glow), 0 0 50px var(--color-yellow-glow), inset 0 2px 8px rgba(255,255,255,0.15); }
+    50%      { box-shadow: 0 0 40px var(--color-yellow-glow), 0 0 80px var(--color-yellow-glow), inset 0 2px 8px rgba(255,255,255,0.15); }
+  }
+
+  .lamp-btn:active { transform: scale(0.95); }
+
+  /* 押せない（他人がロック中）*/
+  .lamp-btn.locked-by-other {
+    cursor: not-allowed;
+    opacity: 0.85;
+  }
+
+  /* ===== SETTINGS PANEL ===== */
+  #settings-panel {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+  }
+
+  #settings-panel.open {
+    display: flex;
+  }
+
+  .settings-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .settings-title {
+    font-size: 18px;
+    font-weight: 500;
+  }
+
+  .btn-close {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 18px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .btn-close:hover { color: var(--text); border-color: var(--accent); }
+
+  .settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .settings-section-title {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .settings-label {
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  .settings-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* セグメントコントロール */
+  .segment-ctrl {
+    display: flex;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .segment-ctrl button {
+    padding: 7px 14px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .segment-ctrl button.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  /* ボタン一覧 */
+  .btn-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .btn-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .btn-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--accent);
+  }
+
+  .btn-item input[type="text"] {
+    flex: 1;
+    padding: 6px 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .btn-item input[type="text"]:focus {
+    border-color: var(--accent);
+  }
+
+  .btn-item-handle {
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: grab;
+    user-select: none;
+  }
+
+  .btn-add {
+    padding: 10px;
+    background: none;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-add:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .settings-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .btn-secondary {
+    padding: 10px 20px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover {
+    color: var(--text);
+    border-color: var(--text-muted);
+  }
+
+  /* ===== STATUS BAR ===== */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  /* ===== TOAST ===== */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 13px;
+    color: var(--text);
+    transition: transform 0.3s ease;
+    z-index: 200;
+    white-space: nowrap;
+  }
+
+  #toast.show {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ===== NAME INPUT (settings) ===== */
+  .name-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .name-input-wrap input {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .name-input-wrap input:focus {
+    border-color: var(--accent);
+  }
+
+  /* ===== COLOR PATTERN PREVIEW ===== */
+  .color-preview {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .cp-dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <div class="logo-dot"></div>
+    <span class="header-title">作業中ランプ</span>
+  </div>
+  <div class="header-right">
+    <div class="user-badge" id="header-user-badge" style="display:none">
+      <span style="font-size:11px">👤</span>
+      <span class="name" id="header-user-name"></span>
+    </div>
+    <button class="btn-settings" id="open-settings-btn" style="display:none" onclick="openSettings()">
+      ⚙ 設定
+    </button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+
+  <!-- 名前入力プロンプト -->
+  <div id="name-prompt">
+    <div class="prompt-title">はじめに名前を入力してください</div>
+    <div class="prompt-sub">入力した名前がボタン操作時に全員の画面に表示されます。</div>
+    <div class="input-group">
+      <input type="text" id="name-input-main" placeholder="例：田中" maxlength="20" />
+      <button class="btn-primary" onclick="saveName()">開始</button>
+    </div>
+  </div>
+
+  <!-- ボタンエリア -->
+  <div id="buttons-area">
+    <div id="buttons-grid" class="buttons-grid"></div>
+    <div class="status-bar">
+      <div class="status-dot"></div>
+      <span id="status-text">リアルタイム接続中</span>
+    </div>
+  </div>
+
+</main>
+
+<!-- SETTINGS PANEL -->
+<div id="settings-panel">
+  <div class="settings-box">
+    <div class="settings-header">
+      <div class="settings-title">⚙ 設定</div>
+      <button class="btn-close" onclick="closeSettings()">✕</button>
+    </div>
+
+    <!-- ユーザー名 -->
+    <div class="settings-section">
+      <div class="settings-section-title">ユーザー名</div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">表示名</div>
+          <div class="settings-sub">ボタン操作時に全員に表示されます</div>
+        </div>
+        <div class="name-input-wrap">
+          <input type="text" id="settings-name-input" placeholder="例：田中" maxlength="20" />
+          <button class="btn-primary" style="padding:8px 14px;font-size:13px" onclick="updateName()">変更</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ボタンサイズ -->
+    <div class="settings-section">
+      <div class="settings-section-title">ボタンサイズ</div>
+      <div class="settings-row">
+        <div class="settings-label">表示サイズ</div>
+        <div class="segment-ctrl" id="size-ctrl">
+          <button onclick="setSetting('size','small')" data-val="small">小</button>
+          <button onclick="setSetting('size','medium')" data-val="medium">中</button>
+          <button onclick="setSetting('size','large')" data-val="large">大</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- カラーパターン -->
+    <div class="settings-section">
+      <div class="settings-section-title">カラーパターン</div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">色の選択肢</div>
+          <div class="settings-sub">ボタンを押すたびに次の色に切り替わります</div>
+        </div>
+        <div class="segment-ctrl" id="pattern-ctrl">
+          <button onclick="setSetting('pattern','2')" data-val="2">2択</button>
+          <button onclick="setSetting('pattern','3')" data-val="3">3択</button>
+          <button onclick="setSetting('pattern','4')" data-val="4">4択</button>
+          <button onclick="setSetting('pattern','5')" data-val="5">5択</button>
+        </div>
+      </div>
+      <div id="pattern-preview" class="color-preview" style="padding-left:4px"></div>
+    </div>
+
+    <!-- ボタン一覧 -->
+    <div class="settings-section">
+      <div class="settings-section-title">ボタン一覧</div>
+      <div class="btn-list" id="settings-btn-list"></div>
+      <button class="btn-add" onclick="addButtonItem()">＋ ボタンを追加</button>
+    </div>
+
+    <div class="settings-footer">
+      <button class="btn-secondary" onclick="closeSettings()">キャンセル</button>
+      <button class="btn-primary" onclick="saveSettings()">保存して閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ===== CONFIG =====
+const SUPABASE_URL = 'https://hezptvplxmrnlnkuxfxj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlenB0dnBseG1ybmxua3V4ZnhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMTU3MjAsImV4cCI6MjA5NTg5MTcyMH0.80MDJbe2CxtwA6Sr-DoEiS2wsfrTQIGZnUiU1sFHZeY';
+
+// ===== STATE =====
+let myName = localStorage.getItem('rtb_name') || '';
+let localSettings = JSON.parse(localStorage.getItem('rtb_settings') || 'null') || {
+  size: 'medium',
+  pattern: '2',
+  buttons: [
+    { id: 'btn_1', label: '電話帳', enabled: true },
+  ]
+};
+
+// カラーパターン定義
+const PATTERNS = {
+  '2': ['red', 'off'],
+  '3': ['red', 'blue', 'off'],
+  '4': ['red', 'blue', 'white', 'off'],
+  '5': ['red', 'blue', 'green', 'yellow', 'off'],
+};
+
+const STATUS_LABELS = {
+  'off': 'OFF',
+  'red': '作業中',
+  'blue': '確認中',
+  'white': '対応中',
+  'green': '完了',
+  'yellow': '待機中',
+};
+
+const COLOR_HEX = {
+  red: '#ef5350', blue: '#42a5f5', white: '#e8eaf6',
+  green: '#66bb6a', yellow: '#ffca28', off: '#2e3350'
+};
+
+// ===== REALTIME STATE =====
+let buttonStates = {}; // { [id]: { status, locked_by } }
+let pollTimer = null;
+
+// ===== INIT =====
+window.addEventListener('load', () => {
+  if (myName) {
+    showButtonsArea();
+  }
+  document.getElementById('name-input-main').addEventListener('keydown', e => {
+    if (e.key === 'Enter') saveName();
+  });
+});
+
+function saveName() {
+  const val = document.getElementById('name-input-main').value.trim();
+  if (!val) { showToast('名前を入力してください'); return; }
+  myName = val;
+  localStorage.setItem('rtb_name', myName);
+  showButtonsArea();
+}
+
+function showButtonsArea() {
+  document.getElementById('name-prompt').style.display = 'none';
+  document.getElementById('buttons-area').style.display = 'flex';
+  document.getElementById('header-user-badge').style.display = 'flex';
+  document.getElementById('header-user-name').textContent = myName;
+  document.getElementById('open-settings-btn').style.display = 'flex';
+  initPolling();
+  renderButtons();
+}
+
+// ===== POLLING（1.5秒ごとにDBを確認）=====
+async function initPolling() {
+  await fetchButtonStates();
+  document.getElementById('status-text').textContent = '同期中（1.5秒ごと更新）';
+  pollTimer = setInterval(fetchButtonStates, 1500);
+}
+
+async function fetchButtonStates() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/buttons?select=id,status,locked_by`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const rows = await res.json();
+    if (Array.isArray(rows)) {
+      rows.forEach(r => { buttonStates[r.id] = { status: r.status, locked_by: r.locked_by }; });
+    }
+    renderButtons();
+  } catch(e) {}
+}
+
+async function upsertButton(id, status, locked_by) {
+  await fetch(`${SUPABASE_URL}/rest/v1/buttons`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates'
+    },
+    body: JSON.stringify({ id, label: id, status, locked_by, updated_at: new Date().toISOString() })
+  });
+}
+
+// ===== RENDER =====
+function renderButtons() {
+  const grid = document.getElementById('buttons-grid');
+  grid.innerHTML = '';
+  const enabled = localSettings.buttons.filter(b => b.enabled);
+  enabled.forEach(b => {
+    const state = buttonStates[b.id] || { status: 'off', locked_by: '' };
+    const wrapper = document.createElement('div');
+    wrapper.className = 'lamp-wrapper';
+    wrapper.innerHTML = `
+      <button
+        class="lamp-btn size-${localSettings.size} ${isLockedByOther(b.id) ? 'locked-by-other' : ''}"
+        id="lamp-${b.id}"
+        data-status="${state.status}"
+        onclick="handleClick('${b.id}')"
+      >
+        <span class="btn-status-text">${STATUS_LABELS[state.status] || state.status}</span>
+        ${state.locked_by ? `<span class="btn-user-text">${state.locked_by}</span>` : ''}
+      </button>
+      <div class="lamp-label">${b.label}</div>
+    `;
+    grid.appendChild(wrapper);
+  });
+}
+
+function updateButtonUI(id) {
+  const btn = document.getElementById(`lamp-${id}`);
+  if (!btn) return;
+  const state = buttonStates[id] || { status: 'off', locked_by: '' };
+  btn.dataset.status = state.status;
+  btn.className = `lamp-btn size-${localSettings.size} ${isLockedByOther(id) ? 'locked-by-other' : ''}`;
+  btn.innerHTML = `
+    <span class="btn-status-text">${STATUS_LABELS[state.status] || state.status}</span>
+    ${state.locked_by ? `<span class="btn-user-text">${state.locked_by}</span>` : ''}
+  `;
+}
+
+function isLockedByOther(id) {
+  const state = buttonStates[id] || { status: 'off', locked_by: '' };
+  return state.status !== 'off' && state.locked_by && state.locked_by !== myName;
+}
+
+// ===== CLICK HANDLER =====
+async function handleClick(id) {
+  const state = buttonStates[id] || { status: 'off', locked_by: '' };
+
+  // 他人がロック中
+  if (isLockedByOther(id)) {
+    showToast(`${state.locked_by} さんが作業中です`);
+    return;
+  }
+
+  const pattern = PATTERNS[localSettings.pattern] || PATTERNS['2'];
+  const currentIdx = pattern.indexOf(state.status);
+  const nextIdx = (currentIdx + 1) % pattern.length;
+  const nextStatus = pattern[nextIdx];
+  const nextLockedBy = nextStatus === 'off' ? '' : myName;
+
+  buttonStates[id] = { status: nextStatus, locked_by: nextLockedBy };
+  updateButtonUI(id);
+  await upsertButton(id, nextStatus, nextLockedBy);
+}
+
+// ===== SETTINGS =====
+function openSettings() {
+  document.getElementById('settings-name-input').value = myName;
+  renderSettingsSizeCtrl();
+  renderSettingsPatternCtrl();
+  renderSettingsBtnList();
+  document.getElementById('settings-panel').classList.add('open');
+}
+
+function closeSettings() {
+  document.getElementById('settings-panel').classList.remove('open');
+}
+
+function setSetting(type, val) {
+  if (type === 'size') {
+    localSettings.size = val;
+    renderSettingsSizeCtrl();
+  } else if (type === 'pattern') {
+    localSettings.pattern = val;
+    renderSettingsPatternCtrl();
+  }
+}
+
+function renderSettingsSizeCtrl() {
+  document.querySelectorAll('#size-ctrl button').forEach(b => {
+    b.classList.toggle('active', b.dataset.val === localSettings.size);
+  });
+}
+
+function renderSettingsPatternCtrl() {
+  document.querySelectorAll('#pattern-ctrl button').forEach(b => {
+    b.classList.toggle('active', b.dataset.val === localSettings.pattern);
+  });
+  // preview
+  const preview = document.getElementById('pattern-preview');
+  const colors = PATTERNS[localSettings.pattern] || PATTERNS['2'];
+  preview.innerHTML = colors.map(c =>
+    `<div class="cp-dot" style="background:${COLOR_HEX[c] || '#ccc'}" title="${c}"></div>`
+  ).join('') + `<span style="font-size:12px;color:var(--text-muted);margin-left:4px">${colors.filter(c=>c!=='off').map(c=>STATUS_LABELS[c]).join(' → ')} → OFF</span>`;
+}
+
+function renderSettingsBtnList() {
+  const list = document.getElementById('settings-btn-list');
+  list.innerHTML = '';
+  localSettings.buttons.forEach((b, i) => {
+    const item = document.createElement('div');
+    item.className = 'btn-item';
+    item.innerHTML = `
+      <span class="btn-item-handle">⠿</span>
+      <input type="checkbox" ${b.enabled ? 'checked' : ''} onchange="toggleBtnEnabled(${i}, this.checked)" />
+      <input type="text" value="${b.label}" placeholder="ボタン名" oninput="updateBtnLabel(${i}, this.value)" />
+      <button onclick="removeBtnItem(${i})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:0 4px" title="削除">✕</button>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function addButtonItem() {
+  const id = 'btn_' + Date.now();
+  localSettings.buttons.push({ id, label: '新しいボタン', enabled: true });
+  renderSettingsBtnList();
+}
+
+function removeBtnItem(i) {
+  localSettings.buttons.splice(i, 1);
+  renderSettingsBtnList();
+}
+
+function toggleBtnEnabled(i, val) {
+  localSettings.buttons[i].enabled = val;
+}
+
+function updateBtnLabel(i, val) {
+  localSettings.buttons[i].label = val;
+}
+
+function updateName() {
+  const val = document.getElementById('settings-name-input').value.trim();
+  if (!val) { showToast('名前を入力してください'); return; }
+  myName = val;
+  localStorage.setItem('rtb_name', myName);
+  document.getElementById('header-user-name').textContent = myName;
+  showToast('名前を更新しました');
+}
+
+function saveSettings() {
+  localStorage.setItem('rtb_settings', JSON.stringify(localSettings));
+  closeSettings();
+  renderButtons();
+  showToast('設定を保存しました');
+}
+
+// ===== TOAST =====
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
