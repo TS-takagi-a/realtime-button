@@ -637,6 +637,30 @@
     border-radius: 50%;
   }
 
+  /* 待機者リスト */
+  .waiting-list {
+    font-size: 11px;
+    color: var(--color-yellow);
+    text-align: center;
+    margin-top: 4px;
+    padding: 4px 10px;
+    background: rgba(255,202,40,0.1);
+    border: 1px solid rgba(255,202,40,0.3);
+    border-radius: 20px;
+    max-width: 200px;
+    animation: fade-in 0.3s ease;
+  }
+
+  .lamp-btn.is-waiting {
+    outline: 2px solid var(--color-yellow);
+    outline-offset: 3px;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
   /* scrollbar */
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
@@ -796,6 +820,7 @@ const COLOR_HEX = {
 
 // ===== REALTIME STATE =====
 let buttonStates = {}; // { [id]: { status, locked_by } }
+let waitingStates = {}; // { [id]: string[] } 待機者名リスト
 let pollTimer = null;
 
 // ===== INIT =====
@@ -847,7 +872,8 @@ async function fetchButtonStates() {
   } catch(e) {}
 }
 
-async function upsertButton(id, status, locked_by) {
+async function upsertButton(id, status, locked_by, waiting_list) {
+  const wl = waiting_list !== undefined ? waiting_list : (waitingStates[id] || []);
   await fetch(`${SUPABASE_URL}/rest/v1/buttons`, {
     method: 'POST',
     headers: {
@@ -856,7 +882,7 @@ async function upsertButton(id, status, locked_by) {
       'Content-Type': 'application/json',
       'Prefer': 'resolution=merge-duplicates'
     },
-    body: JSON.stringify({ id, label: id, status, locked_by, updated_at: new Date().toISOString() })
+    body: JSON.stringify({ id, label: id, status, locked_by, waiting_list: wl.join(','), updated_at: new Date().toISOString() })
   });
 }
 
@@ -869,9 +895,11 @@ function renderButtons() {
     const state = buttonStates[b.id] || { status: 'off', locked_by: '' };
     const wrapper = document.createElement('div');
     wrapper.className = 'lamp-wrapper';
+    const wl = waitingStates[b.id] || [];
+    const isWaiting = wl.includes(myName);
     wrapper.innerHTML = `
       <button
-        class="lamp-btn size-${localSettings.size} ${isLockedByOther(b.id) ? 'locked-by-other' : ''}"
+        class="lamp-btn size-${localSettings.size} ${isLockedByOther(b.id) ? 'locked-by-other' : ''} ${isWaiting ? 'is-waiting' : ''}"
         id="lamp-${b.id}"
         data-status="${state.status}"
         onclick="handleClick('${b.id}')"
@@ -880,6 +908,7 @@ function renderButtons() {
         ${state.locked_by ? `<span class="btn-user-text">${state.locked_by}</span>` : ''}
       </button>
       <div class="lamp-label">${b.label}</div>
+      ${wl.length > 0 ? `<div class="waiting-list">⏳ ${wl.join('・')}が待機中</div>` : ''}
     `;
     grid.appendChild(wrapper);
   });
@@ -906,9 +935,24 @@ function isLockedByOther(id) {
 async function handleClick(id) {
   const state = buttonStates[id] || { status: 'off', locked_by: '' };
 
-  // 他人がロック中
+  // 他人がロック中 → 待機リストに追加
   if (isLockedByOther(id)) {
-    showToast(`${state.locked_by} さんが作業中です`);
+    const wl = waitingStates[id] || [];
+    if (wl.includes(myName)) {
+      // すでに待機中 → 待機キャンセル
+      const newWl = wl.filter(n => n !== myName);
+      waitingStates[id] = newWl;
+      await upsertButton(id, state.status, state.locked_by, newWl);
+      await fetchButtonStates();
+      showToast('待機をキャンセルしました');
+    } else {
+      // 待機登録
+      const newWl = [...wl, myName];
+      waitingStates[id] = newWl;
+      await upsertButton(id, state.status, state.locked_by, newWl);
+      await fetchButtonStates();
+      showToast(`${state.locked_by} さんの後に待機登録しました`);
+    }
     return;
   }
 
@@ -918,7 +962,9 @@ async function handleClick(id) {
   const nextStatus = pattern[nextIdx];
   const nextLockedBy = nextStatus === 'off' ? '' : myName;
 
-  await upsertButton(id, nextStatus, nextLockedBy);
+  // OFFになる時は待機リストもクリア
+  const newWl = nextStatus === 'off' ? [] : (waitingStates[id] || []);
+  await upsertButton(id, nextStatus, nextLockedBy, newWl);
   await fetchButtonStates();
 }
 
