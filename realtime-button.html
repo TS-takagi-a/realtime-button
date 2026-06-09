@@ -861,14 +861,24 @@ async function initPolling() {
 
 async function fetchButtonStates() {
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/buttons?select=id,status,locked_by`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/buttons?select=id,status,locked_by,waiting_list`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
     });
     const rows = await res.json();
     if (Array.isArray(rows)) {
-      rows.forEach(r => { buttonStates[r.id] = { status: r.status, locked_by: r.locked_by }; });
+      let changed = false;
+      rows.forEach(r => {
+        const prev = buttonStates[r.id];
+        const newWl = r.waiting_list ? r.waiting_list.split(',').filter(n => n) : [];
+        const prevWl = waitingStates[r.id] || [];
+        if (!prev || prev.status !== r.status || prev.locked_by !== r.locked_by || JSON.stringify(prevWl) !== JSON.stringify(newWl)) {
+          changed = true;
+        }
+        buttonStates[r.id] = { status: r.status, locked_by: r.locked_by };
+        waitingStates[r.id] = newWl;
+      });
+      if (changed) renderButtons();
     }
-    renderButtons();
   } catch(e) {}
 }
 
@@ -964,6 +974,7 @@ async function handleClick(id) {
 
   // OFFになる時は待機リストもクリア
   const newWl = nextStatus === 'off' ? [] : (waitingStates[id] || []);
+  waitingStates[id] = newWl;
   await upsertButton(id, nextStatus, nextLockedBy, newWl);
   await fetchButtonStates();
 }
