@@ -952,15 +952,15 @@ async function handleClick(id) {
       // すでに待機中 → 待機キャンセル
       const newWl = wl.filter(n => n !== myName);
       waitingStates[id] = newWl;
+      renderButtons(); // 自分の画面を即座に更新
       await upsertButton(id, state.status, state.locked_by, newWl);
-      await fetchButtonStates();
       showToast('待機をキャンセルしました');
     } else {
       // 待機登録
       const newWl = [...wl, myName];
       waitingStates[id] = newWl;
+      renderButtons(); // 自分の画面を即座に更新
       await upsertButton(id, state.status, state.locked_by, newWl);
-      await fetchButtonStates();
       showToast(`${state.locked_by} さんの後に待機登録しました`);
     }
     return;
@@ -975,8 +975,9 @@ async function handleClick(id) {
   // OFFになる時は待機リストもクリア
   const newWl = nextStatus === 'off' ? [] : (waitingStates[id] || []);
   waitingStates[id] = newWl;
+  buttonStates[id] = { status: nextStatus, locked_by: nextLockedBy };
+  renderButtons(); // 自分の画面を即座に更新
   await upsertButton(id, nextStatus, nextLockedBy, newWl);
-  await fetchButtonStates();
 }
 
 // ===== SETTINGS =====
